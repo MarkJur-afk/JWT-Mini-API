@@ -112,6 +112,69 @@ Vastus (HTTP 200):
 
 API-d testiti käsitsi käsuga `curl`. Kõik 7 testi läbiti edukalt.
 
+### Kuidas JWT-d testida
+
+Käivita server (`python app.py`) ja ava teine terminaliaken projekti kaustas (virtuaalkeskkond peab olema aktiveeritud).
+
+1. Hangi tokenid muutujatesse `TOKEN` (student) ja `ADMIN_TOKEN` (admin):
+
+   ```bash
+   TOKEN=$(curl -s -X POST http://127.0.0.1:5001/login -H "Content-Type: application/json" -d '{"username":"student","password":"student123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+   ```
+
+   ```bash
+   ADMIN_TOKEN=$(curl -s -X POST http://127.0.0.1:5001/login -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+   ```
+
+2. Vale parool (oodatud 401):
+
+   ```bash
+   curl -i -X POST http://127.0.0.1:5001/login -H "Content-Type: application/json" -d '{"username":"student","password":"wrong"}'
+   ```
+
+3. Profiil kehtiva tokeniga (oodatud 200):
+
+   ```bash
+   curl -i http://127.0.0.1:5001/profiil -H "Authorization: Bearer $TOKEN"
+   ```
+
+4. Profiil ilma tokenita (oodatud 401):
+
+   ```bash
+   curl -i http://127.0.0.1:5001/profiil
+   ```
+
+5. Muudetud token: lisame tokeni lõppu tähti, nii et allkiri ei kehti enam (oodatud 401):
+
+   ```bash
+   curl -i http://127.0.0.1:5001/profiil -H "Authorization: Bearer ${TOKEN}abc"
+   ```
+
+6. Aegunud token: loome tokeni õige võtmega, aga `exp` on minevikus (oodatud 401, `Token has expired`):
+
+   ```bash
+   EXPIRED=$(python -c "import jwt, os; from datetime import datetime, timedelta, timezone; from dotenv import load_dotenv; load_dotenv(); n=datetime.now(timezone.utc); print(jwt.encode({'sub':'student','role':'student','iat':n-timedelta(minutes=10),'exp':n-timedelta(minutes=5)}, os.getenv('JWT_SECRET'), algorithm='HS256'))")
+   curl -i http://127.0.0.1:5001/profiil -H "Authorization: Bearer $EXPIRED"
+   ```
+
+7. Student kasutab admin endpointi (oodatud 403):
+
+   ```bash
+   curl -i http://127.0.0.1:5001/admin -H "Authorization: Bearer $TOKEN"
+   ```
+
+8. Admin kasutab admin endpointi (oodatud 200):
+
+   ```bash
+   curl -i http://127.0.0.1:5001/admin -H "Authorization: Bearer $ADMIN_TOKEN"
+   ```
+
+Token kehtib 5 minutit. Kui see aegub, hangi uus token sammuga 1.
+
+### Testide tulemused
+
+Kõik 7 testi läbiti edukalt.
+
 | #  | Test                                   | Endpoint        | Oodatud | Tegelik | Tulemus |
 |----|----------------------------------------|-----------------|---------|---------|---------|
 | 1  | Edukas sisselogimine                   | POST /login     | 200     | 200     | Läbitud |
