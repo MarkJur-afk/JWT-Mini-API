@@ -5,15 +5,15 @@ import jwt
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 
-# Читаем файл .env (там лежит JWT_SECRET)
+# load secret key from .env
 load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")
 if JWT_SECRET is None:
-    raise RuntimeError("JWT_SECRET не найден в .env")
+    raise RuntimeError("JWT_SECRET not found in .env")
 
 app = Flask(__name__)
 
-# Наши "пользователи" (база данных не нужна)
+# test users, no database needed
 USERS = {
     "student": {"password": "student123", "role": "student"},
     "admin": {"password": "admin123", "role": "admin"},
@@ -22,43 +22,42 @@ USERS = {
 
 @app.route("/login", methods=["POST"])
 def login():
-    # Берём username и password из JSON, который прислал клиент
+    # get username and password from json body
     data = request.get_json(silent=True) or {}
     username = data.get("username")
     password = data.get("password")
 
-    # Проверяем: такой пользователь есть и пароль совпадает?
+    # check if user exists and password is correct
     user = USERS.get(username)
     if user is None or user["password"] != password:
         return jsonify({"error": "Wrong username or password"}), 401
 
-    # Создаём JWT: sub, role, iat, exp
+    # make the token
     now = datetime.now(timezone.utc)
     payload = {
-        "sub": username,                    # кто это
-        "role": user["role"],               # его роль
-        "iat": now,                         # когда выдан
-        "exp": now + timedelta(minutes=5),  # когда истекает (через 5 минут)
+        "sub": username,                    # username
+        "role": user["role"],               # student or admin
+        "iat": now,                         # issued at
+        "exp": now + timedelta(minutes=5),  # expires in 5 min
     }
     token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
     return jsonify({"token": token}), 200
 
 
+# checks the token from Authorization header
+# returns (payload, None) if ok, or (None, error message) if not
 def check_token():
-    """Проверяет токен из заголовка Authorization.
-    Возвращает (payload, None), если токен хороший,
-    или (None, "текст ошибки"), если плохой."""
     auth_header = request.headers.get("Authorization", "")
 
-    # Заголовок должен выглядеть так: Bearer <токен>
+    # header must be "Bearer <token>"
     if not auth_header.startswith("Bearer "):
         return None, "Token is missing"
 
     token = auth_header[len("Bearer "):]
 
     try:
-        # decode проверяет подпись и срок действия (exp)
+        # decode checks signature and exp
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         return None, "Token has expired"
@@ -79,12 +78,12 @@ def profiil():
 
 @app.route("/admin", methods=["GET"])
 def admin():
-    # Сначала проверяем токен (так же, как в /profiil)
+    # check token first, same as in /profiil
     payload, error = check_token()
     if error:
         return jsonify({"error": error}), 401
 
-    # Токен хороший, но роль не admin -> 403 (доступ запрещён)
+    # valid token but not admin -> 403
     if payload["role"] != "admin":
         return jsonify({"error": "Admin access only"}), 403
 
@@ -92,5 +91,5 @@ def admin():
 
 
 if __name__ == "__main__":
-    # Порт 5001, потому что на Mac порт 5000 занят AirPlay
+    # port 5001 because 5000 is used by AirPlay on mac
     app.run(debug=True, port=5001)
