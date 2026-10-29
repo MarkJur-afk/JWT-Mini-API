@@ -5,7 +5,7 @@ import jwt
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 
-# load secret key from .env
+# secret is in .env file, not here in the code
 load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")
 if JWT_SECRET is None:
@@ -13,7 +13,7 @@ if JWT_SECRET is None:
 
 app = Flask(__name__)
 
-# test users, no database needed
+# just two users in a dict, task says no database
 USERS = {
     "student": {"password": "student123", "role": "student"},
     "admin": {"password": "admin123", "role": "admin"},
@@ -22,44 +22,46 @@ USERS = {
 
 @app.route("/login", methods=["POST"])
 def login():
-    # get username and password from json body
+    # username and password come in the json
     data = request.get_json(silent=True) or {}
     username = data.get("username")
     password = data.get("password")
 
-    # check if user exists and password is correct
+    # wrong username or wrong password -> 401
     user = USERS.get(username)
     if user is None or user["password"] != password:
         return jsonify({"error": "Wrong username or password"}), 401
 
-    # make the token
+    # data inside the token
     now = datetime.now(timezone.utc)
     payload = {
-        "sub": username,                    # username
-        "role": user["role"],               # student or admin
-        "iat": now,                         # issued at
-        "exp": now + timedelta(minutes=5),  # expires in 5 min
+        "sub": username,                    # who the token is for
+        "role": user["role"],
+        "iat": now,                         # time when created
+        "exp": now + timedelta(minutes=5),  # dies after 5 minutes
     }
     token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
     return jsonify({"token": token}), 200
 
 
-# checks the token from Authorization header
-# returns (payload, None) if ok, or (None, error message) if not
+# I use this function in /profiil and in /admin so I dont repeat the code
+# if token is ok it gives (payload, None), if not then (None, error text)
 def check_token():
     auth_header = request.headers.get("Authorization", "")
 
-    # header must be "Bearer <token>"
+    # no header or its not Bearer -> no token
     if not auth_header.startswith("Bearer "):
         return None, "Token is missing"
 
+    # cut the word "Bearer " away, only token stays
     token = auth_header[len("Bearer "):]
 
     try:
-        # decode checks signature and exp
+        # jwt.decode checks the signature and also if token is expired
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
+        # this must be before InvalidTokenError
         return None, "Token has expired"
     except jwt.InvalidTokenError:
         return None, "Token is invalid"
@@ -78,12 +80,11 @@ def profiil():
 
 @app.route("/admin", methods=["GET"])
 def admin():
-    # check token first, same as in /profiil
     payload, error = check_token()
     if error:
         return jsonify({"error": error}), 401
 
-    # valid token but not admin -> 403
+    # token is fine but user is not admin, so 403 and not 401
     if payload["role"] != "admin":
         return jsonify({"error": "Admin access only"}), 403
 
@@ -91,5 +92,5 @@ def admin():
 
 
 if __name__ == "__main__":
-    # port 5001 because 5000 is used by AirPlay on mac
+    # not 5000 because mac uses it for AirPlay
     app.run(debug=True, port=5001)
