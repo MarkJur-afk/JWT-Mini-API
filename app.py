@@ -45,6 +45,38 @@ def login():
     return jsonify({"token": token}), 200
 
 
+def check_token():
+    """Проверяет токен из заголовка Authorization.
+    Возвращает (payload, None), если токен хороший,
+    или (None, "текст ошибки"), если плохой."""
+    auth_header = request.headers.get("Authorization", "")
+
+    # Заголовок должен выглядеть так: Bearer <токен>
+    if not auth_header.startswith("Bearer "):
+        return None, "Token is missing"
+
+    token = auth_header[len("Bearer "):]
+
+    try:
+        # decode проверяет подпись и срок действия (exp)
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return None, "Token has expired"
+    except jwt.InvalidTokenError:
+        return None, "Token is invalid"
+
+    return payload, None
+
+
+@app.route("/profiil", methods=["GET"])
+def profiil():
+    payload, error = check_token()
+    if error:
+        return jsonify({"error": error}), 401
+
+    return jsonify({"username": payload["sub"], "role": payload["role"]}), 200
+
+
 if __name__ == "__main__":
     # Порт 5001, потому что на Mac порт 5000 занят AirPlay
     app.run(debug=True, port=5001)
