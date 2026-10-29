@@ -1,22 +1,22 @@
 # JWT Mini-API
 
-## Description
+## Kirjeldus
 
-A small Flask API that demonstrates JWT (JSON Web Token) authentication.
-A user logs in with a username and password, receives a token, and then uses
-that token to access protected endpoints. One endpoint is available only to
-users with the `admin` role.
+Väike Flaski API, mis demonstreerib JWT (JSON Web Token) autentimist.
+Kasutaja logib sisse kasutajanime ja parooliga, saab tokeni ning kasutab seda
+kaitstud endpointide poole pöördumiseks. Üks endpoint on lubatud ainult
+kasutajatele, kelle roll on `admin`.
 
-## Technologies
+## Kasutatud tehnoloogiad
 
 - Python 3
 - Flask
 - PyJWT
 - python-dotenv
 
-## Installation
+## Paigaldamine
 
-1. Create and activate a virtual environment.
+1. Loo ja aktiveeri virtuaalkeskkond.
 
    macOS / Linux:
 
@@ -32,38 +32,38 @@ users with the `admin` role.
    .\venv\Scripts\Activate.ps1
    ```
 
-2. Install the dependencies:
+2. Paigalda vajalikud teegid:
 
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Create a `.env` file in the project folder with the secret key:
+3. Loo projekti kausta fail `.env` salajase võtmega:
 
    ```
    JWT_SECRET=super_secret_key_123
    ```
 
-   The `.env` file is listed in `.gitignore` and is not stored in Git.
+   Fail `.env` on lisatud `.gitignore` faili ega satu Giti.
 
-## Running
+## Käivitamine
 
 ```bash
 python app.py
 ```
 
-The server starts at `http://127.0.0.1:5001`.
+Server käivitub aadressil `http://127.0.0.1:5001`.
 
-## Users
+## Kasutajad
 
-| username | password   | role    |
-|----------|------------|---------|
-| student  | student123 | student |
-| admin    | admin123   | admin   |
+| kasutajanimi | parool     | roll    |
+|--------------|------------|---------|
+| student      | student123 | student |
+| admin        | admin123   | admin   |
 
-## Example: /login
+## Näide: /login
 
-Request:
+Päring:
 
 ```bash
 curl -X POST http://127.0.0.1:5001/login \
@@ -71,7 +71,7 @@ curl -X POST http://127.0.0.1:5001/login \
   -d '{"username":"student","password":"student123"}'
 ```
 
-Response (HTTP 200):
+Vastus (HTTP 200):
 
 ```json
 {
@@ -79,19 +79,19 @@ Response (HTTP 200):
 }
 ```
 
-The token is signed with HS256, expires after 5 minutes and contains:
-`sub` (username), `role`, `iat` (issued at) and `exp` (expires at).
+Token on allkirjastatud algoritmiga HS256, kehtib 5 minutit ja sisaldab välju:
+`sub` (kasutajanimi), `role` (roll), `iat` (väljastamise aeg) ja `exp` (aegumise aeg).
 
-## Example: using the JWT
+## Näide: JWT kasutamine
 
-Send the token in the `Authorization` header:
+Saada token päises `Authorization`:
 
 ```bash
 curl http://127.0.0.1:5001/profiil \
   -H "Authorization: Bearer <JWT_TOKEN>"
 ```
 
-Response (HTTP 200):
+Vastus (HTTP 200):
 
 ```json
 {
@@ -100,34 +100,34 @@ Response (HTTP 200):
 }
 ```
 
-## Endpoints
+## Endpointid
 
-| Method | Path      | Access        | Responses                                                                  |
-|--------|-----------|---------------|----------------------------------------------------------------------------|
-| POST   | /login    | public        | 200 + token for valid credentials, 401 for wrong username or password      |
-| GET    | /profiil  | valid JWT     | 200 + user info, 401 if the token is missing, invalid, changed or expired  |
-| GET    | /admin    | JWT, admin    | 200 for admin, 403 for student, 401 if the token is missing or invalid     |
+| Meetod | Tee       | Ligipääs         | Vastused                                                                      |
+|--------|-----------|------------------|-------------------------------------------------------------------------------|
+| POST   | /login    | avalik           | 200 + token õigete andmete korral, 401 vale kasutajanime või parooli korral   |
+| GET    | /profiil  | kehtiv JWT       | 200 + kasutaja info, 401 kui token puudub, on vigane, muudetud või aegunud    |
+| GET    | /admin    | JWT, roll admin  | 200 adminile, 403 studentile, 401 kui token puudub või on vigane              |
 
-## Testing
+## Testimine
 
-The API was tested manually with `curl`. All 7 tests passed.
+API-d testiti käsitsi käsuga `curl`. Kõik 7 testi läbiti edukalt.
 
-| #  | Test                              | Endpoint        | Expected | Actual | Result |
-|----|-----------------------------------|-----------------|----------|--------|--------|
-| 1  | Successful login                  | POST /login     | 200      | 200    | Pass   |
-| 2  | Wrong password                    | POST /login     | 401      | 401    | Pass   |
-| 3  | Profile with valid token          | GET /profiil    | 200      | 200    | Pass   |
-| 4  | Profile without token             | GET /profiil    | 401      | 401    | Pass   |
-| 5  | Tampered token                    | GET /profiil    | 401      | 401    | Pass   |
-| 6  | Expired token                     | GET /profiil    | 401      | 401    | Pass   |
-| 7  | Student uses admin endpoint       | GET /admin      | 403      | 403    | Pass   |
+| #  | Test                                   | Endpoint        | Oodatud | Tegelik | Tulemus |
+|----|----------------------------------------|-----------------|---------|---------|---------|
+| 1  | Edukas sisselogimine                   | POST /login     | 200     | 200     | Läbitud |
+| 2  | Vale parool                            | POST /login     | 401     | 401     | Läbitud |
+| 3  | Profiil kehtiva tokeniga               | GET /profiil    | 200     | 200     | Läbitud |
+| 4  | Profiil ilma tokenita                  | GET /profiil    | 401     | 401     | Läbitud |
+| 5  | Muudetud token                         | GET /profiil    | 401     | 401     | Läbitud |
+| 6  | Aegunud token                          | GET /profiil    | 401     | 401     | Läbitud |
+| 7  | Student kasutab admin endpointi        | GET /admin      | 403     | 403     | Läbitud |
 
-## Security notes
+## Turvamärkused
 
-- The secret key is stored in `.env`, not in the source code, and `.env` is not committed to Git.
-- Tokens are signed with HS256 and expire after 5 minutes.
-- The server accepts only the HS256 algorithm when verifying tokens.
-- A changed token fails the signature check and a token past `exp` is rejected; both return 401.
-- Users and passwords are stored in plain text in the code. This is acceptable for a learning project only. A real application would use a database and hashed passwords.
-- The server runs in debug mode and over plain HTTP. A real application must use HTTPS and turn debug mode off.
-- Anyone can read the contents of a JWT, so never put passwords or other secrets inside it.
+- Salajane võti on failis `.env`, mitte lähtekoodis, ja `.env` ei ole Gitis.
+- Tokenid on allkirjastatud algoritmiga HS256 ja aeguvad 5 minuti pärast.
+- Server aktsepteerib tokeni kontrollimisel ainult algoritmi HS256.
+- Muudetud token ei läbi allkirja kontrolli ja aegunud token (`exp`) lükatakse tagasi; mõlemal juhul on vastus 401.
+- Kasutajad ja paroolid on koodis lihttekstina. See sobib ainult õppeprojektiks. Päris rakenduses kasutataks andmebaasi ja räsitud paroole.
+- Server töötab debug-režiimis ja tavalise HTTP kaudu. Päris rakenduses tuleb kasutada HTTPS-i ja debug-režiim välja lülitada.
+- Igaüks saab JWT sisu lugeda, seega ära pane tokenisse paroole ega muid saladusi.
