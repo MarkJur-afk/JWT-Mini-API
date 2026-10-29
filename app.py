@@ -13,7 +13,7 @@ if JWT_SECRET is None:
 
 app = Flask(__name__)
 
-# just two users in a dict, task says no database
+# just two users in a dict
 USERS = {
     "student": {"password": "student123", "role": "student"},
     "admin": {"password": "admin123", "role": "admin"},
@@ -27,7 +27,7 @@ def login():
     username = data.get("username")
     password = data.get("password")
 
-    # wrong username or wrong password -> 401
+    #  401
     user = USERS.get(username)
     if user is None or user["password"] != password:
         return jsonify({"error": "Wrong username or password"}), 401
@@ -50,18 +50,18 @@ def login():
 def check_token():
     auth_header = request.headers.get("Authorization", "")
 
-    # no header or its not Bearer -> no token
+    
     if not auth_header.startswith("Bearer "):
         return None, "Token is missing"
 
-    # cut the word "Bearer " away, only token stays
+    
     token = auth_header[len("Bearer "):]
 
     try:
         # jwt.decode checks the signature and also if token is expired
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        # this must be before InvalidTokenError
+        
         return None, "Token has expired"
     except jwt.InvalidTokenError:
         return None, "Token is invalid"
@@ -92,5 +92,4 @@ def admin():
 
 
 if __name__ == "__main__":
-    # not 5000 because mac uses it for AirPlay
     app.run(debug=True, port=5001)
