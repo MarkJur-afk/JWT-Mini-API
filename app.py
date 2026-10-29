@@ -77,6 +77,20 @@ def profiil():
     return jsonify({"username": payload["sub"], "role": payload["role"]}), 200
 
 
+@app.route("/admin", methods=["GET"])
+def admin():
+    # Сначала проверяем токен (так же, как в /profiil)
+    payload, error = check_token()
+    if error:
+        return jsonify({"error": error}), 401
+
+    # Токен хороший, но роль не admin -> 403 (доступ запрещён)
+    if payload["role"] != "admin":
+        return jsonify({"error": "Admin access only"}), 403
+
+    return jsonify({"message": "Welcome, admin!"}), 200
+
+
 if __name__ == "__main__":
     # Порт 5001, потому что на Mac порт 5000 занят AirPlay
     app.run(debug=True, port=5001)
